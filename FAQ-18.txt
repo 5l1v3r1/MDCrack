@@ -1,0 +1,383 @@
+FAQ V1.8
+
+
+
+Question: 
+	Where can i find binaries and/or sources for Unix like OSes ?
+
+Answer: 
+	Since version 1.5, this software is now primarily developped for Win32 and is closed sources.
+	The reason is i needed a robust plateform for threads
+   	At this time, i have not looked at Linux and BSD threads implementation, not yet.
+	The old 1.2 release for Windows really needed a complete rewrite and this was another good reason.
+   	I still love FreeBSD and Linux though :)
+	A port for these systems might be released later but i can't give any date now. 
+	Note that sources and binaries for the previous 1.2 version are still downloadable from MDCrack homepage: http://mdcrack.openwall.net.
+        Also note that MDCrack has been reported working fine with Wine for Linux (reported by N.Spohrer with release 1.8)
+        More information on Wine can be found at http://www.winehq.com/
+
+
+
+Question:
+	What's new since version 1.2 ?
+
+Answer:
+	In summary it now supports parallel cracking as well as load-sharing between up to 8 CPUs.
+	This version supports 5 new algorithms and several new optimized cores, is stable and more user friendly.
+	For more details please look at the web site: http://mdcrack.openwall.net
+
+
+
+Question:	
+	Can i redistribute your package on my own site ?
+
+Answer:
+	Yes you can but...
+	please try to keep the original package structure untouched and provide the same MD5 signature or a link to it. 	
+        For those downloading from other sites than http://mdcrack.openwall.net, be sure to check the MD5 checksum on the homepage.		
+
+
+
+Question: 
+	What algorithm does it support ?
+
+Answer: 
+	raw MD2, raw MD4, raw MD5, HMAC-MD4, HMAC-MD5, Microsoft NTLMv1, FreeBSD, Apache, Cisco IOS and PIX (for both Enable and users accounts)
+        Invision Power Board 2.x, MD4(MD4(pass)), MD5(MD5(pass)), MD4(MD4(pass).salt), MD5(MD5(pass).salt)
+	All algorithms are supported with and without salt.
+        As of version 1.7, MDCrack comes with Cis7, a small MDCrack companion tool to handle encoding/decoding of Cisco type 7 passwords.
+
+
+
+Question:
+	What method of attack does it support ?
+
+Answer:
+	Since version 1.5, MDCrack only support bruteforce attacks (also known as incremental) and might never support anything else.
+	When passwords are not made of easily guessable names or if they are salted, this program is your best chance.
+	For a dictionnary based attack you probably want a program like John the ripper available here: http://www.openwall.com/john 	
+	
+
+
+Question: 
+	I have a shadow password file that use FreeBSD MD5 algorithm to store passwords, can i crack them with MDCrack ?
+
+Answer: 
+	Yes, MDCrack version 1.7 and greater, comes with two cores that implement FreeBSD MD5 and offers yet another alternative to test your Linux or FreeBSD passwords.
+
+
+
+Question: 
+	What hash syntax should i use at the commmand line ?
+
+Answer: 
+	MD2, MD4, MD5, HMAC-MD4, HMAC-MD5 and NTLMv1 algorithms use the very common asciihex syntax,
+        a string made of 32 characters in the following range: [0-9a-fA-F]. 
+        123456789abcdef01234567890123456, for example, is a correct hash syntax for these algorithms.
+        Note that MDCrack will accept both lowercase and uppercase letters.
+        For PIXes algorithms, use a base64 syntax made of 16 characters in the range [0-9a-zA-Z+/]
+        This is the very same format found in PIXes configuration.
+        srr62dc9/5G1nC)e is a valid example of a PIX hash
+        FreeBSD and IOS use the following hash syntax : $1$SALT$HASH
+        That is, the same format used in shadow files and IOS configuration files.
+        Note that IOS use a salt of 4 bytes while FreeBSD takes 8 bytes
+        Apache uses $apr1$SALT$HASH with a salt made of 8 bytes.
+
+
+
+Question: 
+	Where can i get a valid NTLMv1 hash on my system ?
+
+Answer: 
+	In the sam file usually located in "{WINROOT}\system32\config\sam". Use any tool like pwdump2.exe to dump the sam in clear form. 
+	The first hash after the username is a Lanmanager hash (weak DES implementation) and the second one is this you want (NTLM).
+	Just copy and paste the hash as is (32 characters) in your command line.
+	eg: mdcrack --algorithm=NTLM1 6287617255addf63715eefd1b1b0e15f
+
+
+
+Question: 
+	Where can i get a valid PIX hash, how do i crack it ?
+
+Answer: 
+	In your PIX configuration, you should read something like 
+	enable password rsg12dl5/1GOnD2e
+	copy the last part "rsg12dl5/1GOnD2e" and past it into your command line and use --algorithm=PIX or --algorithm=PIX-E.
+	eg. mdcrack --algorithm=PIX rsg12dl5/1GOnD2e
+
+	In the same configuration you may also read one or many lines like:
+	username user password dse19dn3/2GOfD2m encrypted privilege 15
+	This is a PIX user definition, use a similar command line to crack his hash.
+	eg. mdcrack --algorithm=PIX-U --user=user dse19dn3/2GOfD2m
+	
+        
+
+Question: 
+	Every time i try to use PIX algorithms with a salt,
+        MDCrack quits after returning a "no suitable core found" message, is it a bug ?
+
+Answer: 
+        Actually not, this is a normal behavior since Cisco passwords can't exceed 16 bytes in length.
+        By default, MDCrack starts with the assumption that you want to test all possible candidates sizes for the requested algorithm. 
+        PIX Cores limit for candidates size being also 16 bytes for PIX algorithms consequently any added salt will go beyond this limit.  
+        Simply tell MDCrack you want to test smaller candidates using --maxsize=option.
+        --maxsize=10, for instance, will force a Core to stop the session when all candidates made of up to 10 bytes (inclusive) have been tested.
+        mdcrack-sse --algorithm=PIX --append=mysalt cfg62ce2/4G2nD5m, will return an error.
+        mdcrack-sse --algorithm=PIX --maxsize=11 --append mysalt cfg62ce2/4G2nD5m, will also return an error.
+        mdcrack-sse --algorithm=PIX --maxsize=10 --append mysalt cfg62ce2/4G2nD5m won't because maximal possible length won't exceed core limit anymore (10 + 6 in this example).
+        Note that it is the exact same thing for PIX user algorithm (--algo=PIX-U)
+
+
+
+Question: 
+	Do i have a mean to only test one candidate i suspect to be the password ?
+
+Answer:
+        Yes use both --count=1 option and --candidate=<your candidate> option.
+        First option tells MDCrack to only examine one candidate, second one provides the first candidate to examine.
+        Note that even without --count and considering you are not using some other options like --all,
+        MDCrack will stop after the first try if your candidate actually collides with the provided hash.
+        --count=1 in this example forces it to stop after the first try whatever result occurs.
+
+
+
+Question: 
+	 My system has two or more processors, what should i do to get advantage of all this processing power ?
+
+Answer: 
+	Actually nothing.
+        When MDCrack starts it will find all processors that have been detected by your system.
+	Default behavior is to work in load sharing mode where the same hash will be processed by all your CPUs.
+        MDCrack launchs one worker thread per processor found in your system (each worker thread is a MDCrack Core).
+        Work load is first evaluated and then equally shared between each worker.
+        So provided that all your processors have correctly been detected by your operating system,
+        MDCrack will automatically use all your processing power.   
+
+
+
+Question: 
+	I have X processors but how do i tell MDCrack to only use X-1 processor(s)?
+
+Answer: 
+	Firstly, if your goal is to let enough processing power to other applications you may want to consider using priority option -p.
+        Even with a thread running on each one of your processors but at priority IDLE, will let all processors power available for any other
+        applications running at higher priorities.
+        But if for some other reasons you want to limit the number of threads simply use --threads option.
+        Doing so you can, for instance, launch one worker thread at priority HIGH on one processor and keep all processing power of other processors intact.
+        This also works at REALTIME priority, but take extra care to really use X-1 processor(s) otherwise you may need to reset your system.
+
+
+
+Question: 
+	I have X processors but how do i tell MDCrack to use X+1 thread(s)?
+
+Answer: 
+	You have no real advantage to do so but you can using option --threads=X+1.
+        This option limits overall threads number to 8, but allows you to run up to 8 threads on 1 or more processors if you wish.
+        Note that however you will most likely run at a slower speed rate because of implied system context switching operations.  
+
+
+
+Question: 
+	What is --glue option for ?
+
+Answer: 
+	This option uses Windows threads mask affinity feature to force threads to only run on their designated processor
+        thus bypassing normal system scheduler rules.
+        By default there is no guaranty that X threads will be actually run on X different processors even if it will be the case
+        for most situations.
+        Because MDCrack threads try to get as much as 100% of your processing power, your system scheduler will most likely
+        try to run them on separate processor units.
+        But in cases, for instance, where other CPU intensive processes are running at same priority, two or more MDCrack threads may end up running on the same processor.
+        This option forces your system to equally distribute threads among processors and you won't find yourself in situation with X threads are sharing the same processor
+        while another process is granted the X-1 remaining processors.
+        Note if you force X threads (--threads=X option) on you dual processor system, using this option will glue X/2 threads per processor. 
+
+
+Question: 
+	Can i crack more than 1 hash simultaneously like most other password cracker softwares do ?
+
+Answer: 
+	yes and no.
+        MDCrack will accept only one hash from the command line and all threads will work together, cooperatively, on this very same hash.
+        However, you can launch as many MDCrack processes you wish and thus can simultaneously crack several hashes.
+        Multi-processors system owners can additionnally reserve a processor for each process worker thread.
+        This is however not exactly the same as taking multiple hashes from the same command line.
+        Indeed, testing multiple hashes in the same threads allow for greater overall speed than testing them in separate processes.
+        This feature will be added in a next release.
+
+
+Question: 
+	What can be done if I already know the charset or password scheme in use in my organisation ?
+
+Answer: 
+	You can use the '--charset' option and feed your organisation charset to MDCrack, additionnally you can use the '--mix' option to mix it up randomly before use.
+	If you know even partially the password scheme in use (eg: usernameXXXX2006) salts will be of great help, use --prepend=username and --append=2006 in this example.
+
+
+
+Question:
+	I have no clue about the charset being used by my organisation but i suspect MDCrack default charset ([a-z0-9A-Z]) to be too large or incomplete for my needs.
+
+Answer:
+	Either use '--charset' followed by a charset of your choice, or use '--random'=<size> and MDCrack will randomly generate one for you
+
+
+
+Question: 
+	I feel lucky and seek as many collisions as possible.
+
+Answer: 
+	'--all' option will ask MDCrack to not quit after the first collision found, it will actually never quit until you explicitly stop the session
+	by using control-C from the console.
+	Note that it will also leave if current keyspace has been depleted or if one of the limits has been reached (eg. timer expiration).
+	
+
+
+Question: 
+	How fast is MDcrack ?
+
+Answer: 
+	As far as i know, MDcrack offers the fastest bruteforce attack for all the algorithms it supports MD2/MD5/MD4/NTLMv1/PIX/PIXu.
+	Please let me know if you know anything faster. 
+
+
+
+Question:
+	MD2 poorly performs in comparison to MD5 on my computer, is it normal behavior ?
+
+Answer:
+	Yes, MD2 was designed and optimized for 8 bits architectures, it is hard to optimize on a 32 bits architecture.
+	I'm still working on this but do not expect any rate near MD5.
+
+
+
+Question: 
+	Why prepended salts seem to make MDCrack running slightly slower than with appended salts or no salt at all?
+
+Answer: 
+	With no salt or an appended salt MDCrack uses a double-hashing algorithm where two hashes are generated in a row 
+	thus benefiting even more from the use of the L1 CPU cache. 
+
+
+
+Question: 
+	Why are performances so poor with verbosity set (ie. --verbose and --verbose=very) ?
+
+Answer: 
+	for obvious reasons, MDCrack makes repetitive calls to IO functions in order to display current candidate and hash.
+	This mode should only be considered for fun and educationnal purposes. It should never be used for anything else.
+	Since 1.5, you can press any key at the keyboard during a session to get threads runtime statistics.
+
+
+Question:
+	When should i change MDCrack process priority and why ?
+
+Answer:
+	In most cases, IDLE is perfect because it will kindly let CPU cycles for any other running applications.
+	In some circumstances, a penetration test for instance, you may want to reserve most if not all CPU cycles for MDCrack and use HIGH priority.
+	Be aware that REALTIME will make your system unresponding for the whole session time !
+	In short, never use --all with --priority=REALTIME ! 
+	Otherwise wipe a tear and press reset ;)
+
+
+Question:
+	I am trying to run MDCrack with REALTIME priority but it doesn't work.
+
+Answer:
+	You probably don't want to do that but if you know for sure what you are doing, type '--priority=REALTIME' twice at the command line
+
+
+
+Question: 
+	Can i save my session and resume it at a later time ?
+
+Answer:
+	Yes, MDCrack automatically saves your session if you stop it from the console (with control-c). 
+	Default session file is located in %USER PROFILE%\Application Data\MDCrack\mdcrack.latest
+	To change session filename, use --session=FILENAME from the command line.
+	To resume a saved session, either:
+		type MDCrack alone 
+		or type MDCrack --resume
+	The later lets you add more option like '--session' to load an alternate session filename, '--priority' to set process priority etc..
+	in fact any option not restored from the session file. 
+	
+	
+Question:
+	What are --color[=SCHEME], --fullscreen options used for ?
+Answer:
+	They are aesthetic options, they affect the screen colors and layout, nothing else
+	--color[=SCHEME] switches the console in color mode with an optional color scheme, more readable IMO,
+	--fullscreen switches console in fullscreen mode
+   
+
+Question: 
+	How can i benchmark my system and how to send my results ?
+
+Answer: 
+	I still need them, 
+	Since version 1.5, type mdcrack --benchmark[=PASS] from the console, wait about the two minutes it takes
+	then copy the report and send it to me by email at mdcrack@videotron.ca
+	Ideally you should close any other running application, especially applications greedy with your CPU. 
+	Before sending your benchmark, check your system has not already been reported in the performance table.
+	Also if you see what you think to be an error in this table, please report it by email (mdcrack@videotron.ca)
+	Thank you !
+
+
+Question:
+        How does the algorithm auto-detect feature work ? i provided a MD2 hash at the command line but MDCrack is still
+        using one of its MD5 cores ?!
+        
+Answer:
+        Well there is no visible difference between a MD5/MD4/MD2 so MDCrack has to default to some algorithm in case of a tie.
+        In this case it is MD5.
+        Some algorithm specific options like --salt, --username, --nonce will be interpreted as clues to refine the guess but yet there is no way to
+        differentiate between a HMAC-MD4 and HMAC-MD5, so if it doesn't default to your algorithm you must provide it using --algorithm option.
+        For some other algorithms like FreeBSD, Apache and IOS, the guess is trivial since the hash carries a signature.
+        
+        
+Question: 
+	What can I do to help you?
+
+Answer: 
+	Any help will be appreciated.
+	I you find typo or grammar errors in the documentation, please report it.
+	You can also translate the documentation like this faq in your native language.
+	Send me your benchmarks
+	Send me an email to discuss any new feature you wish and/or problem you may have
+	Send me an email to report bugs.
+	Since 1.5 you can now make a donation to support MDCrack.
+
+	See the web page for more details: http://mdcrack.openwall.net
+
+
+
+Question:
+	What is coming in next releases ?
+Answer:
+	The biggest and most exciting feature under development is Network distribution (i prefer the term 'mass cracking'), still no date to give.
+	Meantime, expect to see:
+	
+	more algorithms and optimized cores. 
+	bug fixes
+	any new feature you request that makes sense.
+
+
+
+Question: 
+	I still have a question that's unanswered...
+
+Answer: 
+	You can e-mail me at mdcrack@videotron.ca
+	You can also visit the main site and download the latest files at http://mdcrack.openwall.net 
+	
+
+
+
+
+					
+					Have fun !
+						Gregory
+
+
+
